@@ -205,9 +205,12 @@ class Servers(object):
 		# put the incoming task into server, vm
 		for i in range(10):
 			temp_s_state[action1][action2][i] = task_info[i]
+			print(task_info[i])
+		print("###############")
 
 		# next state, needs to be returned
 		s_state_ = temp_s_state
+		print(temp_s_state)
 
 
 		# this is the state used to calculate total price
@@ -245,12 +248,6 @@ class Servers(object):
 			for i in range(len(reward_state)):
 				# here should have a sort finish time shengxu
 				reward_state[i] = reward_state[i][np.lexsort(reward_state[i][:,:6:].T)]
-				
-				# print(i)
-				# print(len(reward_state))
-			# temp = reward_state[i]
-			# temp = temp[np.lexsort(reward_state[:,:6:].T)]
-			# reward_state[i] = temp
 
 			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -313,8 +310,6 @@ class Servers(object):
 				if money_state[i][j][2] != -1:
 					CPU_used += money_state[i][j][2]
 					RAM_used += money_state[i][j][3]
-					print(CPU_used)
-					print("########")
 			for j in range(len(money_state[i])):
 				if money_state[i][j][6] !=-1:
 					if money_state[i][j][6] <= task_info[5]:#
@@ -334,6 +329,8 @@ class Servers(object):
 						for k in range(j,10):# 9 is size of queue!!!!!!!!!!!!!!!!!!!!!!????????
 							money_state[i][k][8] = task_info[5]
 						break
+
+
 ################
 
 			# if ((CPU_used + task_info[2]) / s_info[action1][1]) > 1 or ((RAM_used + task_info[3]) / s_info[action1][2]) >1:
@@ -350,11 +347,13 @@ class Servers(object):
 		trans_s_state = trans_s_state.reshape(-1)
 		trans_s_state_ = trans_s_state_.reshape(-1)
 
+
+
 		if reward3 < 0:
-			return s_state, trans_s_state, reward3, price_cal, trans_s_state_
+			return s_state_, trans_s_state, reward3, price_cal, trans_s_state_
 		else:
 			reward3 = 1 / reward3
-			return s_state, trans_s_state, reward3, price_cal, trans_s_state_
+			return s_state_, trans_s_state, reward3, price_cal, trans_s_state_
 
 
 		# return s_state, reward3, price_cal, s_state_

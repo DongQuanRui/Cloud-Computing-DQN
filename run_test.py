@@ -19,7 +19,7 @@ def read_file():
 	s_info = np.array(s_info)
 
 	# task information
-	task_file = pd.read_csv('task1.csv')
+	task_file = pd.read_csv('task.csv')
 	task_file.columns=["Col1","Col2","Col3","Col4","Col5"]
 	 
 	t_info = task_file[["Col1","Col2","Col3","Col4","Col5"]]
@@ -35,7 +35,6 @@ def read_file():
 		t_info[i][5] = t_info[i][0]
 		t_info[i][6] = t_info[i][1]
 		t_info[i][8] = t_info[i][0]
-
 	return s_info.shape[0]
 
 def run_server():
@@ -43,13 +42,13 @@ def run_server():
 	global t_info
 	#global total_price
 	global s_state
-
 	step = 0 #keep record which step I am in
-	for episode in range(500):
+	for episode in range(1):
 		total_price = 0
 		# initialize environment
 		env = Servers()
 		s_state = env.server_state(s_info)
+
 
 		CPU_used = np.zeros((19,1))
 		RAM_used = np.zeros((19,1))
@@ -58,10 +57,7 @@ def run_server():
 				if s_state[i][j][2] != -1:
 					CPU_used[i] += s_state[i][j][2]
 					RAM_used[i] += s_state[i][j][3]
-					
 		observation1 = np.hstack((CPU_used, RAM_used))
-		
-
 		for i in range(len(t_info)):
 			# if step is less than 20, then choose random server
 			if i < 20:
@@ -80,7 +76,7 @@ def run_server():
 				observation1 = observation1.reshape(-1)
 				# print(observation1)
 				action1 = RL.choose_server(observation1)# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			
+
 			Resource_used, reward1, Resource_used_= env.server_step(t_info[i], action1)
 
 			RL.store_transition1(Resource_used, action1, reward1, Resource_used_)
@@ -125,6 +121,7 @@ def run_server():
 				RL.learn()
 
 			s_state = s_state_
+			
 
 			# final price
 			total_price += price_cal

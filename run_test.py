@@ -7,6 +7,7 @@ global s_info
 global t_info
 #global total_price
 global s_state
+np.set_printoptions(threshold=np.inf)
 
 def read_file():
 	global s_info
@@ -19,7 +20,7 @@ def read_file():
 	s_info = np.array(s_info)
 
 	# task information
-	task_file = pd.read_csv('task.csv')
+	task_file = pd.read_csv('task1.csv')
 	task_file.columns=["Col1","Col2","Col3","Col4","Col5"]
 	 
 	t_info = task_file[["Col1","Col2","Col3","Col4","Col5"]]
@@ -59,6 +60,7 @@ def run_server():
 					RAM_used[i] += s_state[i][j][3]
 		observation1 = np.hstack((CPU_used, RAM_used))
 		for i in range(len(t_info)):
+			print(i)
 			# if step is less than 20, then choose random server
 			if i < 20:
 				action1 = np.random.randint(0, 18)
@@ -66,16 +68,19 @@ def run_server():
 			else:
 				CPU_used = np.zeros((19,1))
 				RAM_used = np.zeros((19,1))
-				for i in range(len(s_state)):
-					for j in range(len(s_state[i])):
-						if s_state[i][j][2] != -1:
-							CPU_used[i] += s_state[i][j][2]
-							RAM_used[i] += s_state[i][j][3]
+				for j in range(len(s_state)):
+
+					for k in range(len(s_state[j])):
+						if s_state[j][k][2] != -1:
+							CPU_used[j] += s_state[j][k][2]
+							RAM_used[j] += s_state[j][k][3]
 					
 				observation1 = np.hstack((CPU_used, RAM_used))
 				observation1 = observation1.reshape(-1)
+
 				# print(observation1)
 				action1 = RL.choose_server(observation1)# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 			Resource_used, reward1, Resource_used_= env.server_step(t_info[i], action1)
 

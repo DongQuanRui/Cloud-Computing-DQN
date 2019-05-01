@@ -2,11 +2,14 @@ import random
 import numpy as np
 import pandas as pd
 
+
 global s_state
 # global vm_state
 global num_servers
 global s_info
 global price_cal
+
+np.set_printoptions(threshold=np.inf)
 
 class Servers(object):
 	"""docstring for Server"""
@@ -51,7 +54,7 @@ class Servers(object):
 		global num_servers
 		global s_info
 		num_servers = len(server_info)
-		s_state = [[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1] for j in range(10)] for i in range(len(server_info))]
+		s_state = [[[-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0] for j in range(10)] for i in range(len(server_info))]
 		s_state = np.array(s_state)
 		s_info = server_info
 
@@ -74,6 +77,9 @@ class Servers(object):
 		global CPU_used
 		global RAM_used
 		global s_state
+		
+			# print(task_info[2])
+			# print("#########")
 
 		CPU_used = np.zeros((19,1))
 		RAM_used = np.zeros((19,1))
@@ -91,6 +97,8 @@ class Servers(object):
 		Resource_used = np.hstack((CPU_used, RAM_used))
 
 		CPU_used[action1] += task_info[2]
+
+
 		RAM_used[action1] += task_info[3]
 
 		Resource_used_ = np.hstack((CPU_used, RAM_used))
@@ -113,13 +121,14 @@ class Servers(object):
 		
 		return Resource_used, reward1, Resource_used_ #useless!!!!!
 
-	def vm_step(self, task_info, action1, action2):
+	def vm_step(self, task_info, action1, action2):#task should be global!!!!!!!!!!!!!???????????????
 		global s_state
 		vm_state = s_state[action1]
 		vm_state_ = s_state[action1]
+
 		
 		for i in range(10): #canshu geshu
-			vm_state_[action2][i] = task_info[i] # chuan can!!!!!!!
+			vm_state_[action2][i] = task_info[i] # chuan can!!!!!!!?????????????????????????????
 
 
 		vm_reward = vm_state_
@@ -172,6 +181,8 @@ class Servers(object):
 	def time_step(self, task_info, action1, action2, action3):
 		global s_state
 
+
+
 		# update info of incoming task？？？？？？？？？？？？？？？？？？？？？？？？/
 		# time_reward = s_state[action1][action2]
 		# time_reward[5] += action3#canshu!!!!!
@@ -179,9 +190,10 @@ class Servers(object):
 
 		if s_state[action1][action2][0] == -1:
 			task_info[5] += action3
+
 			task_info[6] += action3
 		else:
-			if task_info[5] < s_state[action1][action2][6]:
+			if task_info[5] < s_state[action1][action2][6]:#zhiyouzheyizhongqingkuang???????????????????
 				task_info[5] = action3 + s_state[action1][action2][6]
 				task_info[6] = task_info[5] + task_info[1] - task_info[0]
 			else:
@@ -205,17 +217,20 @@ class Servers(object):
 		# put the incoming task into server, vm
 		for i in range(10):
 			temp_s_state[action1][action2][i] = task_info[i]
-			print(task_info[i])
-		print("###############")
+			
+		# print("###############")
 
 		# next state, needs to be returned
 		s_state_ = temp_s_state
-		print(temp_s_state)
+		#print(s_state_)
+		#print(temp_s_state)
 
 
 		# this is the state used to calculate total price
 		
 		reward_state = temp_s_state
+
+
 
 
 		# start of reward state, cut the time_calculated of other performing tasks
@@ -238,9 +253,10 @@ class Servers(object):
 		reward3 = 0
 		CPU_used = 0
 		RAM_used = 0
-		for i in range(len(reward_state[action1])):
-			CPU_used += reward_state[action1][i][2]
-			RAM_used += reward_state[action1][i][3]
+		for i in range(len(reward_state[action1])):#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!jia ge tiao jian
+			if reward_state[action1][i][2] != -1:
+				CPU_used += reward_state[action1][i][2]
+				RAM_used += reward_state[action1][i][3]
 		if CPU_used > s_info[action1][1] or RAM_used > s_info[action1][2] or task_info[6]>task_info[4]:
 			reward3 = -1
 		else:
@@ -267,6 +283,8 @@ class Servers(object):
 						continue
 					else:#多算了后面的任务reward， 算到task为止
 						reward3 += self.price_model(reward_state[i][j][8], reward_state[i][j][6], (CPU_used / s_info[i][1]))
+						# print(reward3)
+						# print("#####")
 						CPU_used -= reward_state[i][j][2]
 						for k in range(j+1, len(reward_state[i][j])):
 							reward_state[i][k][8] = reward_state[i][j][6]
@@ -279,6 +297,7 @@ class Servers(object):
 		# queue_index = action2
 
 		money_state = s_state
+		#print(s_state)
 		# calculate resource used
 		price_cal = 0;
 		#ddl. ????????????????????????????????????? structure
@@ -302,6 +321,8 @@ class Servers(object):
 		money_state[i] = money_state[i][np.lexsort(money_state[i][:,:6:].T)]
 
 
+
+
 		#！！！！！！！！！！！！！！！！！！！！！！！！！！！
 		for i in range(len(money_state)):
 			CPU_used = 0
@@ -315,6 +336,8 @@ class Servers(object):
 					if money_state[i][j][6] <= task_info[5]:#
 						latest_endtime = money_state[i][j][6]
 						price_cal += self.price_model(money_state[i][j][8], money_state[i][j][6], (CPU_used / s_info[i][1]))
+						
+						
 						# set -1
 						
 						CPU_used -= money_state[i][j][2]
@@ -350,7 +373,7 @@ class Servers(object):
 
 
 		if reward3 < 0:
-			return s_state_, trans_s_state, reward3, price_cal, trans_s_state_
+			return s_state, trans_s_state, reward3, price_cal, trans_s_state_
 		else:
 			reward3 = 1 / reward3
 			return s_state_, trans_s_state, reward3, price_cal, trans_s_state_

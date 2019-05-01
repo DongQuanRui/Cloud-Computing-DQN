@@ -293,12 +293,13 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 
 		##############################################################################################################
 		# print(observation)
+		observation2 = np.expand_dims(observation2, axis=0)
 		if np.random.uniform() < self.epsilon:  #90% of chance to pick the existed biggest value
 			actions_value = self.sess.run(self.q_eval2, feed_dict={self.s2: observation2})
 			action2 = np.argmax(self.q_eval2)
 			# print(action)
 		else:
-			action2 = np.random.randint(0, self.q_eval2)
+			action2 = np.random.randint(0, self.n_actions2)
 			# print(action)
 		return action2
 
@@ -307,12 +308,13 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		# to have batch dimension when feed into tf placeholder
 		# at the begining, observation is a one dimension array, to calculate it, transform it into two dimension array
 		############################################################################################################
+		observation3 = np.expand_dims(observation3, axis=0)
 		if np.random.uniform() < self.epsilon:  #90% of chance to pick the existed biggest value
 			actions_value = self.sess.run(self.q_eval3, feed_dict={self.s3: observation3})
 			action3 = np.argmax(self.q_eval3)
 			# print(action)
 		else:
-			action3 = np.random.randint(0, self.q_eval3)
+			action3 = np.random.randint(0, self.n_actions3)
 			# print(action)
 		return action3
 

@@ -12,7 +12,7 @@ class Servers(object):
 	"""docstring for Server"""
 	def __init__(self):
 		super(Servers, self).__init__()
-		self.n_features = 5
+		self.n_features = 10
 		self.num_task_limit = 10
 		
 	def price_model(self, time_start, time_end, cpu_usage):
@@ -51,14 +51,21 @@ class Servers(object):
 		global num_servers
 		global s_info
 		num_servers = len(server_info)
-		s_state = [[[0,0,0,0,0,0,0,0,0,0] for j in xrange(10)] for i in xrange(len(server_info))]
-		# vm_state = [[[0,0] for j in xrange(10)] for i in xrange(len(server_info))]
-		# for i in range(len(vm_state)):
-		# 	for j in range(len(vm_state[i])):
-		# 		vm_state[i][j][0] = s_info[i][0]
-		# 		vm_state[i][j][1] = s_info[i][1]
-
+		s_state = [[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1] for j in range(10)] for i in range(len(server_info))]
+		s_state = np.array(s_state)
 		s_info = server_info
+
+		# CPU_used = np.zeros((19,1))
+		# RAM_used = np.zeros((19,1))
+		# for i in range(len(s_state)):
+		# 	for j in range(len(s_state[i])):
+		# 		if s_state[i][j][2] != -1:
+		# 			CPU_used[i] += s_state[i][j][2]
+		# 			RAM_used[i] += s_state[i][j][3]
+
+		# observation1 = np.hstack((CPU_used, RAM_used))
+
+		return s_state
 
 
 	def server_step(self, task_info, action1): #action (server index, queue index)
@@ -68,12 +75,15 @@ class Servers(object):
 		global RAM_used
 		global s_state
 
-		CPU_used = np.array((19,1))
-		RAM_used = np.array((19,1))
+		CPU_used = np.zeros((19,1))
+		RAM_used = np.zeros((19,1))
+		#print(CPU_used)
+		# print(s_state.shape)
 
 		# Current CPU Utilization
 		for i in range(len(s_state)):
 			for j in range(len(s_state[i])):
+				# print(s_state[i][j][2])
 				if s_state[i][j][2] != -1:
 					CPU_used[i] += s_state[i][j][2]
 					RAM_used[i] += s_state[i][j][3]
@@ -83,7 +93,7 @@ class Servers(object):
 		CPU_used[action1] += task_info[2]
 		RAM_used[action1] += task_info[3]
 
-		Resource_used = np.hstack((CPU_used, RAM_used))
+		Resource_used_ = np.hstack((CPU_used, RAM_used))
 
 		if CPU_used[action1] > 0.2 and CPU_used[action1] < 0.8:
 			reward_CPU1 = 1
@@ -146,15 +156,26 @@ class Servers(object):
 				for j in range(10):
 					vm_reward[i][j] = -1
 		
-		return vm_state[:, 2:4], reward2, vm_state_[:, 2:4]#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		trans_vm_state = vm_state[:, 2:4]
+		trans_vm_state_ = vm_state_[:, 2:4]
+		trans_vm_state = trans_vm_state.reshape(-1)
+		trans_vm_state_ = trans_vm_state_.reshape(-1)
+
+
+		# for i in range(1, 9):
+		# 	trans_vm_state = np.hstack((trans_vm_state, vm_state[i, 2:4]))
+		# 	trans_vm_state_ = np.hstack((trans_vm_state, vm_state[i, 2:4]))
+
+
+		return trans_vm_state, reward2, trans_vm_state_
 
 	def time_step(self, task_info, action1, action2, action3):
 		global s_state
 
-		# update info of incoming task
-		time_reward = s_state[action1][action2]
-		time_reward[5] += action3#canshu!!!!!
-		time_reward[6] += action3
+		# update info of incoming task？？？？？？？？？？？？？？？？？？？？？？？？/
+		# time_reward = s_state[action1][action2]
+		# time_reward[5] += action3#canshu!!!!!
+		# time_reward[6] += action3
 
 		if s_state[action1][action2][0] == -1:
 			task_info[5] += action3
@@ -162,7 +183,7 @@ class Servers(object):
 		else:
 			if task_info[5] < s_state[action1][action2][6]:
 				task_info[5] = action3 + s_state[action1][action2][6]
-				task_info[6] = task_info[5] + task[1] - task[0]
+				task_info[6] = task_info[5] + task_info[1] - task_info[0]
 			else:
 				task_info[5] += action3
 				task_info[6] += action3
@@ -173,13 +194,13 @@ class Servers(object):
 		for i in range(len(temp_s_state)):
 			for j in range(len(temp_s_state[i])):
 				# if finished time is earlier than start time of incoming task
-				if temp_s_state[i][j][k] != -1:
+				if temp_s_state[i][j][6] != -1:
 					if temp_s_state[i][j][6] < task_info[5]:
 						# pop the old tasks
 						for k in range(10):
 							temp_s_state[i][j][k] = -1
 					else:
-						temp_s_state[i][j][8] = task_info[5]
+						temp_s_state[i][j][8] = task_info[5]#!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 		# put the incoming task into server, vm
 		for i in range(10):
@@ -190,7 +211,7 @@ class Servers(object):
 
 
 		# this is the state used to calculate total price
-		money_state = temp_s_state
+		
 		reward_state = temp_s_state
 
 
@@ -202,102 +223,138 @@ class Servers(object):
 
 
 		# pop the tasks which task_end earlier than time calculated of incoming task
-		for i in range(len(vm_reward)):
-			if vm_reward[i][6] < task_info[5]:
-				for j in range(10):
-					vm_reward[i][j] = -1
-			else:
-				vm_reward[i][8] = task_info[5]
+		for i in range(len(reward_state)):
+			for j in range(len(reward_state[i])):
+				if reward_state[i][j][6] < task_info[5]:
+					for k in range(10):
+						reward_state[i][j][k] = -1
+				else:
+					reward_state[i][j][8] = task_info[5]
 
 		# calculate the money on the right hand side of red line
 		reward3 = 0
-		# original resource used
-		for i in range(reward_state):
-			# here should have a sort finish time 
-			reward_state[i] = reward_state[i][np.lexsort(reward_state[:,:6:].T)]
+		CPU_used = 0
+		RAM_used = 0
+		for i in range(len(reward_state[action1])):
+			CPU_used += reward_state[action1][i][2]
+			RAM_used += reward_state[action1][i][3]
+		if CPU_used > s_info[action1][1] or RAM_used > s_info[action1][2] or task_info[6]>task_info[4]:
+			reward3 = -1
+		else:
+			# original resource used
+			for i in range(len(reward_state)):
+				# here should have a sort finish time shengxu
+				reward_state[i] = reward_state[i][np.lexsort(reward_state[i][:,:6:].T)]
+				
+				# print(i)
+				# print(len(reward_state))
+			# temp = reward_state[i]
+			# temp = temp[np.lexsort(reward_state[:,:6:].T)]
+			# reward_state[i] = temp
+
 			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 			# original resource used on the ith server
-			CPU_used = 0
-			RAM_used = 0
-			for j in range(len(reward_state[i])):
-				if reward_state[i][j][2] != -1:
-					CPU_used += reward_state[i][j][2]
-					RAM_used += reward_state[i][j][3]
+				CPU_used = 0
+				RAM_used = 0
+				for j in range(len(reward_state[i])):
+					if reward_state[i][j][2] != -1:
+						CPU_used += reward_state[i][j][2]
+						RAM_used += reward_state[i][j][3]
 
 			# calculate reward
-			for j in range(len(reward_state[i])):
-				if reward_state[i][j][0] == -1:
-					continue
-				else:
-					reward3 += self.price_model(reward_state[i][j][8], reward_state[i][j][6], (CPU_used / s_info[i][1]))
-					CPU_used -= reward_state[i][j][2]
-					for k in range(j+1, len(reward_state[i][j])):
-						reward_state[i][j][8] = reward_state[i][j][6]
-					for k in range(10):
-						reward_state[i][j][k] = -1
+				for j in range(len(reward_state[i])):
+					if reward_state[i][j][0] == -1:
+						continue
+					else:#多算了后面的任务reward， 算到task为止
+						reward3 += self.price_model(reward_state[i][j][8], reward_state[i][j][6], (CPU_used / s_info[i][1]))
+						CPU_used -= reward_state[i][j][2]
+						for k in range(j+1, len(reward_state[i][j])):
+							reward_state[i][k][8] = reward_state[i][j][6]
+						for k in range(10):
+							reward_state[i][j][k] = -1
 
 
 		# total price on the left hand side of red line
-		server_index = action1
-		queue_index = action2
+		# server_index = action1
+		# queue_index = action2
 
-		money_state = temp_s_state
+		money_state = s_state
 		# calculate resource used
 		price_cal = 0;
 		#ddl. ????????????????????????????????????? structure
-		if task_info[4] < task_info[6]:
-			reward = -2
+		# if task_info[4] < task_info[6]:
+		# 	reward = -2
 
+		# for i in range(len(money_state)):
+		# 	CPU_used = 0
+		# 	RAM_used = 0
+			# for j in range(len(money_state[i])):
+			# 	if money_state[i][j][2] != -1:
+			# 		CPU_used += money_state[i][j][2]
+			# 		RAM_used += money_state[i][j][3]
+
+		# sort the end time????????????????????????????????????????????????????????????????????????end
+		# for i in range(len(money_state)):
+		# 	temp_server = np.array(money_state[i])
+		# 	temp_server = temp_server[np.lexsort(temp_server[:,:6:].T)]
+		# 	money_state[i] = temp_server
+
+		money_state[i] = money_state[i][np.lexsort(money_state[i][:,:6:].T)]
+
+
+		#！！！！！！！！！！！！！！！！！！！！！！！！！！！
 		for i in range(len(money_state)):
+			CPU_used = 0
+			RAM_used = 0
 			for j in range(len(money_state[i])):
 				if money_state[i][j][2] != -1:
 					CPU_used += money_state[i][j][2]
 					RAM_used += money_state[i][j][3]
-
-		# sort the start time????????????????????????????????????????????????????????????????????????end
-		for i in range(len(money_state)):
-			temp_server = np.array(money_state[i])
-			temp_server = temp_server[np.lexsort(temp_server[:,:6:].T)]
-			money_state[i] = temp_server
-
-
-		for i in range(len(money_state)):
-			CPU_used = 0
-			RAM_used = 0
+					print(CPU_used)
+					print("########")
 			for j in range(len(money_state[i])):
-				if money_state[i][j][6] <= task_info[5]:#
-					latest_endtime = money_state[i][j][6]
-					price_cal += self.price_model(money_state[i][j][8], money_state[i][j][6], (CPU_used / s_info[i][1]))
-					# set -1
-					CPU_used -= money_state[i][j][2]
-					RAM_used -= money_state[i][j][3]
+				if money_state[i][j][6] !=-1:
+					if money_state[i][j][6] <= task_info[5]:#
+						latest_endtime = money_state[i][j][6]
+						price_cal += self.price_model(money_state[i][j][8], money_state[i][j][6], (CPU_used / s_info[i][1]))
+						# set -1
+						
+						CPU_used -= money_state[i][j][2]
+						RAM_used -= money_state[i][j][3]
 
-					for k in range(j+1, 9):# 9 is size of queue!!!!!!!!!!!!!!!!!!!!!!
-						money_state[i][k][8] = money_state[i][j][6]
-				else:
-					price_cal += self.price_model(money_state[i][j][8], task_info[5], (CPU_used / s_info[i][1]))
-					for k in range(j+1,9):# 9 is size of queue!!!!!!!!!!!!!!!!!!!!!!
-						money_state[i][k][8] = task_info[5]
-					break
+						for k in range(j+1, 10):# 9 is size of queue!!!!!!!!!!!!!!!!!!!!!!???????
+							money_state[i][k][8] = money_state[i][j][6]
+						for k in range(10):
+							money_state[i][j][k] = -1
+					else:
+						price_cal += self.price_model(money_state[i][j][8], task_info[5], (CPU_used / s_info[i][1]))
+						for k in range(j,10):# 9 is size of queue!!!!!!!!!!!!!!!!!!!!!!????????
+							money_state[i][k][8] = task_info[5]
+						break
+################
 
-
-			if ((CPU_used + task_info[2]) / s_info[action1][1]) > 1 or ((RAM_used + task_info[3]) / s_info[action1][2]) >1:
-				reward = -1
-			else:
-				price_cal += self.price_model(latest_endtime, task_info[5], CPU_used / s_info[i][1])
-				reward = 2 / price_cal
+			# if ((CPU_used + task_info[2]) / s_info[action1][1]) > 1 or ((RAM_used + task_info[3]) / s_info[action1][2]) >1:
+			# 	reward = -1
+			# else:
+			# 	price_cal += self.price_model(latest_endtime, task_info[5], CPU_used / s_info[i][1])
+			# 	reward = 2 / price_cal
 			
 
 		##########################################################################################
 		# next observation
+		trans_s_state = s_state[action1][:, 2:4]
+		trans_s_state_ = s_state_[action1][:, 2:4]
+		trans_s_state = trans_s_state.reshape(-1)
+		trans_s_state_ = trans_s_state_.reshape(-1)
+
 		if reward3 < 0:
-			return s_state[action1][:, 2:4], reward3, price_cal, s_state_[action1][:, 2:4]#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ß
+			return s_state, trans_s_state, reward3, price_cal, trans_s_state_
 		else:
 			reward3 = 1 / reward3
-			return s_state[action1][:, 2:4], reward3, price_cal, s_state_[action1][:, 2:4]
+			return s_state, trans_s_state, reward3, price_cal, trans_s_state_
 
 
 		# return s_state, reward3, price_cal, s_state_

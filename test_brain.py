@@ -13,31 +13,23 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 	def __init__( 
 			self, #self is an instance in class, is the address of the current object, initialize anything by "self.*** = ***"
 			n_actions,
-			n_features,
-			learning_rate=0.01,
-			reward_decay=0.9,
-			e_greedy=0.9,
-			replace_target_iter=300,
-			memory_size=500,
-			batch_size=32,
-			e_greedy_increment=None,
-			output_graph=False,
+			n_features
 	): #"__init__" is like constructor in C++
 
 		self.n_actions1 = n_actions
 		self.n_actions2 = 10
 		self.n_actions3 = 24 # start time can not be delay over 24 hrs
 		self.n_features1 = n_actions * 2
-		self.n_features2 = 10 * 2
-		self.n_features3 = 10 * 2 # ???????????????
-		self.lr = learning_rate
-		self.gamma = reward_decay
-		self.epsilon_max = e_greedy
-		self.replace_target_iter = replace_target_iter #every replace_target_iter step, update target value
-		self.memory_size = memory_size #memory
-		self.batch_size = batch_size
-		self.epsilon_increment = e_greedy_increment
-		self.epsilon = 0 if e_greedy_increment is not None else self.epsilon_max
+		self.n_features2 = 10 * 2 
+		self.n_features3 = 10 * 2 #
+		self.lr = 0.01
+		self.gamma = 0.9
+		self.epsilon_max = 0.9
+		self.replace_target_iter = 300 #every replace_target_iter step, update target value
+		self.memory_size = 500 #memory
+		self.batch_size = 32
+		self.epsilon_increment = None
+		self.epsilon = 0 if None is not None else self.epsilon_max
 
 		# total learning step
 		self.learn_step_counter = 0
@@ -49,17 +41,16 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 
 		# consist of [target_net, evaluate_net]
 		self._build_net1()
-		self._build_net2()
-		self._build_net3()
-		
 		#get_collection(): get all the elements in the specified name, creaet a list and return it
 		#tf.GraphKeys.GLOBAL_VARIABLE()
 		t_params1 = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_net1')
 		e_params1 = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='eval_net1')
 
+		self._build_net2()
 		t_params2 = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_net2')
 		e_params2 = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='eval_net2')
 
+		self._build_net3()
 		t_params3 = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_net3')
 		e_params3 = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='eval_net3')
 
@@ -83,10 +74,10 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 	# 
 	def _build_net1(self):
 		# ------------------ all inputs ------------------------
-		self.s1 = tf.placeholder(tf.float32, [self.batch_size, 38], name='s1')  # input State, n_features: number of feature
-		self.s1_ = tf.placeholder(tf.float32, [self.batch_size, 38], name='s1_')  # input Next State
-		self.r1 = tf.placeholder(tf.float32, [self.batch_size, 1], name='r1')  # input Reward
-		self.a1 = tf.placeholder(tf.int32, [self.batch_size, 1], name='a1')  # input Action
+		self.s1 = tf.placeholder(tf.float32, [None, self.n_actions1*2], name='s1')  # input State, n_features: number of feature
+		self.s1_ = tf.placeholder(tf.float32, [None, self.n_actions1*2], name='s1_')  # input Next State
+		self.r1 = tf.placeholder(tf.float32, [None, ], name='r1')  # input Reward
+		self.a1 = tf.placeholder(tf.int32, [None, ], name='a1')  # input Action
 
 		w_initializer, b_initializer = tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)
 
@@ -97,7 +88,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 			e1 = tf.layers.dense(self.s1, 10, tf.nn.relu, kernel_initializer=w_initializer,
 								 bias_initializer=b_initializer, name='e1')
 			middle_e1 = tf.layers.dense(e1, 10, tf.nn.relu, kernel_initializer=w_initializer,
-								 bias_initializer=b_initializer, name='e1')
+								 bias_initializer=b_initializer, name='middle_e1')
 			#the second layer has n_action units, the result of e1 as inputs
 			self.q_eval1 = tf.layers.dense(middle_e1, self.n_actions1, kernel_initializer=w_initializer,
 										  bias_initializer=b_initializer, name='q1')
@@ -111,7 +102,6 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 			self.q_next1 = tf.layers.dense(middle_t1, self.n_actions1, kernel_initializer=w_initializer,
 										  bias_initializer=b_initializer, name='qn1')
 
-
 		with tf.variable_scope('q_target1'):
 			q_target1 = self.r1 + self.gamma * tf.reduce_max(self.q_next1, axis=1, name='Qmax1_s_')    # shape=(None, )
 			self.q_target1 = tf.stop_gradient(q_target1)
@@ -119,7 +109,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 			a_indices1 = tf.stack([tf.range(tf.shape(self.a1)[0], dtype=tf.int32), self.a1], axis=1)
 			self.q_eval_wrt_a1 = tf.gather_nd(params=self.q_eval1, indices=a_indices1)    # shape=(None, )
 		with tf.variable_scope('loss1'):
-			self.loss1 = tf.reduce_mean(tf.squared_difference(self.q_target1, self.q_eval1_wrt_a1, name='TD_error1'))
+			self.loss1 = tf.reduce_mean(tf.squared_difference(self.q_target1, self.q_eval_wrt_a1, name='TD_error1'))
 		#train operation:
 		with tf.variable_scope('train1'):
 			self._train_op1 = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss1)
@@ -127,10 +117,10 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 
 	def _build_net2(self):
 		# ------------------ all inputs ------------------------
-		self.s2 = tf.placeholder(tf.float32, [self.batch_size, 20], name='s2')  # input State, n_features: number of feature
-		self.s2_ = tf.placeholder(tf.float32, [self.batch_size, 20], name='s2_')  # input Next State
-		self.r2 = tf.placeholder(tf.float32, [self.batch_size, 1], name='r2')  # input Reward
-		self.a2 = tf.placeholder(tf.int32, [self.batch_size, 2], name='a2')  # input Action
+		self.s2 = tf.placeholder(tf.float32, [None, 20], name='s2')  # input State, n_features: number of feature
+		self.s2_ = tf.placeholder(tf.float32, [None, 20], name='s2_')  # input Next State
+		self.r2 = tf.placeholder(tf.float32, [None, ], name='r2')  # input Reward
+		self.a2 = tf.placeholder(tf.int32, [None, ], name='a2')  # input Action
 
 		w_initializer, b_initializer = tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)
 		# print(b_initializer)
@@ -173,10 +163,10 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 
 	def _build_net3(self):
 		# ------------------ all inputs ------------------------
-		self.s3 = tf.placeholder(tf.float32, [self.batch_size, 20], name='s3')  # input State, n_features: number of feature
-		self.s3_ = tf.placeholder(tf.float32, [self.batch_size, 20], name='s3_')  # input Next State
-		self.r3 = tf.placeholder(tf.float32, [self.batch_size, 1], name='r3')  # input Reward
-		self.a3 = tf.placeholder(tf.int32, [self.batch_size, 3], name='a3')  # input Action
+		self.s3 = tf.placeholder(tf.float32, [None, 20], name='s3')  # input State, n_features: number of feature
+		self.s3_ = tf.placeholder(tf.float32, [None, 20], name='s3_')  # input Next State
+		self.r3 = tf.placeholder(tf.float32, [None, ], name='r3')  # input Reward
+		self.a3 = tf.placeholder(tf.int32, [None, ], name='a3')  # input Action
 
 		w_initializer, b_initializer = tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)
 
@@ -218,10 +208,13 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 
 	def store_transition1(self, s1, a1, r1, s1_):
 	#if "self" doesn't have this reference, then create one
-		print(s1)
-		print(a1)
-		print(r1)
-		print(s1_)
+		
+		s1 = s1.reshape(-1)
+		s1_ = s1_.reshape(-1)
+		# print(s1)
+		# print(a1)
+		# print(r1)
+		# print(s1_)
 
 		if hasattr(self, 'memory_counter') is False:
 			self.memory_counter = 0
@@ -274,35 +267,34 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		self.memory_counter += 1
 
 
-	def choose_server(self, s_state): #observation):
+	def choose_server(self, observation1): #observation):
 		# to have batch dimension when feed into tf placeholder
 		# at the begining, observation is a one dimension array, to calculate it, transform it into two dimension array
 		#############################################################################################################
 
 		##############################################################################################################
-		observation = s_state
-		print(observation)
 		# observation = observation[np.newaxis, :]
-		# print(observation)
+		# print(observation1.shape)
+		# print(observation1)
+		observation1 = np.expand_dims(observation1, axis=0)
 		if np.random.uniform() < self.epsilon:  #90% of chance to pick the existed biggest value
 			# forward feed the observation and get q value for every actions
-			actions_value = self.sess.run(self.q_eval1, feed_dict={self.s1: observation})
+			actions_value = self.sess.run(self.q_eval1, feed_dict={self.s1: observation1})
 			action1 = np.argmax(self.q_eval1)
 		else:                                   #10% of chance to pick the random value
-			action1 = np.random.randint(0, self.q_eval1)
+			action1 = np.random.randint(0, self.n_actions1)
 			# print(action)
 		return action1
 
-	def choose_vm(self, s_state): #observation):
+	def choose_vm(self, observation2): #observation):
 		# to have batch dimension when feed into tf placeholder
 		# at the begining, observation is a one dimension array, to calculate it, transform it into two dimension array
 		#############################################################################################################
 
 		##############################################################################################################
-		observation = s_state
 		# print(observation)
 		if np.random.uniform() < self.epsilon:  #90% of chance to pick the existed biggest value
-			actions_value = self.sess.run(self.q_eval2, feed_dict={self.s2: observation})
+			actions_value = self.sess.run(self.q_eval2, feed_dict={self.s2: observation2})
 			action2 = np.argmax(self.q_eval2)
 			# print(action)
 		else:
@@ -311,16 +303,12 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		return action2
 
 
-	def choose_time(self, s_state): #
+	def choose_time(self, observation3): #
 		# to have batch dimension when feed into tf placeholder
 		# at the begining, observation is a one dimension array, to calculate it, transform it into two dimension array
-		#############################################################################################################
-
-		##############################################################################################################
-		observation = s_state
-		print(observation)
+		############################################################################################################
 		if np.random.uniform() < self.epsilon:  #90% of chance to pick the existed biggest value
-			actions_value = self.sess.run(self.q_eval3, feed_dict={self.s3: observation})
+			actions_value = self.sess.run(self.q_eval3, feed_dict={self.s3: observation3})
 			action3 = np.argmax(self.q_eval3)
 			# print(action)
 		else:
@@ -386,9 +374,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 
 
 if __name__ == '__main__':
-	DQN = DeepQNetwork(3,4, output_graph=True)#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
+	DQN = DeepQNetwork(3, 4, output_graph=True)
 
 
 

@@ -5,7 +5,7 @@ import pandas as pd
 
 global s_info
 global t_info
-global total_price
+#global total_price
 global s_state
 
 def read_file():
@@ -19,7 +19,7 @@ def read_file():
 	s_info = np.array(s_info)
 
 	# task information
-	task_file = pd.read_csv('task.csv')
+	task_file = pd.read_csv('task1.csv')
 	task_file.columns=["Col1","Col2","Col3","Col4","Col5"]
 	 
 	t_info = task_file[["Col1","Col2","Col3","Col4","Col5"]]
@@ -41,25 +41,47 @@ def read_file():
 def run_server():
 	global s_info
 	global t_info
-	global total_price
+	#global total_price
 	global s_state
 
 	step = 0 #keep record which step I am in
 	for episode in range(500):
+		total_price = 0
 		# initialize environment
 		env = Servers()
-		env.server_state(s_info)
-		# print(s_state)
-		# observation = s_state
+		s_state = env.server_state(s_info)
+
+		CPU_used = np.zeros((19,1))
+		RAM_used = np.zeros((19,1))
+		for i in range(len(s_state)):
+			for j in range(len(s_state[i])):
+				if s_state[i][j][2] != -1:
+					CPU_used[i] += s_state[i][j][2]
+					RAM_used[i] += s_state[i][j][3]
+					
+		observation1 = np.hstack((CPU_used, RAM_used))
+		
+
 		for i in range(len(t_info)):
 			# if step is less than 20, then choose random server
 			if i < 20:
 				action1 = np.random.randint(0, 18)
 			# else choose from action values
 			else:
+				CPU_used = np.zeros((19,1))
+				RAM_used = np.zeros((19,1))
+				for i in range(len(s_state)):
+					for j in range(len(s_state[i])):
+						if s_state[i][j][2] != -1:
+							CPU_used[i] += s_state[i][j][2]
+							RAM_used[i] += s_state[i][j][3]
+					
+				observation1 = np.hstack((CPU_used, RAM_used))
+				observation1 = observation1.reshape(-1)
+				# print(observation1)
 				action1 = RL.choose_server(observation1)# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			
-			Resource_used, reward1, Resource_used_= env.server_step(task_info, action1)
+			Resource_used, reward1, Resource_used_= env.server_step(t_info[i], action1)
 
 			RL.store_transition1(Resource_used, action1, reward1, Resource_used_)
 
@@ -72,10 +94,12 @@ def run_server():
 				action2 = np.random.randint(0, 9)
 			# else choose from action values
 			else:
+				observation2 = s_state[action1][:, 2:4]
+				observation2 = observation2.reshape(-1)
 				action2 = RL.choose_vm(observation2)# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-			vm_state, reward2, vm_state_ = env.vm_step(task_info, action1, action2)
+			vm_state, reward2, vm_state_ = env.vm_step(t_info[i], action1, action2)
 			RL.store_transition2(vm_state, action1, action2, reward2, vm_state_)
 
 			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -87,10 +111,12 @@ def run_server():
 				action3 = np.random.randint(0, 24)
 			# else choose from action values
 			else:
+				observation3 = s_state[action1][:, 2:4]
+				observation3 = observation3.reshape(-1)
 				action3 = RL.choose_time(observation3)# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-			time_state, reward3, price_cal, time_state_ = env.time_step(self, task_info, action1, action2, action3)
-			RL.store_transition3(time_state, atcion1, action2, action3, reward3, time_state_)
+			s_state_, time_state, reward3, price_cal, time_state_ = env.time_step(t_info[i], action1, action2, action3)
+			RL.store_transition3(time_state, action1, action2, action3, reward3, time_state_)
 
 			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -98,10 +124,10 @@ def run_server():
 			if (i > 200) and (i % 5 == 0): #start to learn when transition is bigger than 200 and learn every 5 steps
 				RL.learn()
 
-			observation = observation_
+			s_state = s_state_
 
 			# final price
-			total_price += price
+			total_price += price_cal
 		# see if NN is improved
 		print(total_price)
 
@@ -109,15 +135,12 @@ def run_server():
 if __name__ == "__main__":
 	total_price = 0
 	num_servers = read_file()
+
 	env = Servers()
+	# print(num_servers)
+	# print(env.n_features)
 	RL = DeepQNetwork(num_servers,
 					env.n_features
-					# learning_rate=0.01,
-					# reward_decay=0.9,
-					# e_greedy=0.9,
-					#replace_target_iter=200,
-					#memory_size=2000,
-					# output_graph=True
 					)
 	run_server()
 	

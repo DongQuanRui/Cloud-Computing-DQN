@@ -60,7 +60,7 @@ def run_server():
 					RAM_used[i] += s_state[i][j][3]
 		observation1 = np.hstack((CPU_used, RAM_used))
 		for i in range(len(t_info)):
-			print(i)
+			#print(i)
 			# if step is less than 20, then choose random server
 			if i < 20:
 				action1 = np.random.randint(0, 18)
@@ -126,6 +126,7 @@ def run_server():
 				RL.learn()
 
 			s_state = s_state_
+			print(s_state)
 			
 
 			# final price

@@ -92,6 +92,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 			#the second layer has n_action units, the result of e1 as inputs
 			self.q_eval1 = tf.layers.dense(middle_e1, self.n_actions1, kernel_initializer=w_initializer,
 										  bias_initializer=b_initializer, name='q1')
+			
 
 		# ------------------ build target_net ------------------
 		with tf.variable_scope('target_net1'):
@@ -151,7 +152,10 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 			q_target2 = self.r2 + self.gamma * tf.reduce_max(self.q_next2, axis=1, name='Qmax2_s_')    # shape=(None, )
 			self.q_target2 = tf.stop_gradient(q_target2)
 		with tf.variable_scope('q_eval2'):
+			# temp = tf.unstack(self.a2, axis = 1)
+
 			a_indices2 = tf.stack([tf.range(tf.shape(self.a2)[0], dtype=tf.int32), self.a2], axis=1)
+			#a_indices2 = tf.stack([tf.range(tf.shape(self.a2)[0], dtype=tf.int32), temp[0], temp[1]], axis=1)
 			self.q_eval_wrt_a2 = tf.gather_nd(params=self.q_eval2, indices=a_indices2)    # shape=(None, )
 		with tf.variable_scope('loss2'):
 			self.loss2 = tf.reduce_mean(tf.squared_difference(self.q_target2, self.q_eval_wrt_a2, name='TD_error2'))
@@ -251,7 +255,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 	def store_transition3(self, s3, a1, a2, a3, r3, s3_):
 
 		if hasattr(self, 'memory_counter') is False:
-			self.memory_counter = 0
+			self.memory_counter = 0#shi fou xu yao memory count3
 
 		# np.hstack(): horizontally stack every array input
 		transition3 = np.hstack((s3, a1, a2, a3, r3, s3_))
@@ -354,7 +358,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 			[self._train_op2, self.loss2],
 			feed_dict={
 				self.s2: batch_memory2[:, :self.n_features2],
-				self.a2: batch_memory2[:, self.n_features2],
+				self.a2: batch_memory2[:, self.n_features2 + 1],
 				self.r2: batch_memory2[:, self.n_features2 + 2],
 				self.s2_: batch_memory2[:, -self.n_features2:],
 			})
@@ -363,7 +367,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 			[self._train_op3, self.loss3],
 			feed_dict={
 				self.s3: batch_memory3[:, :self.n_features3],
-				self.a3: batch_memory3[:, self.n_features3],
+				self.a3: batch_memory3[:, self.n_features3 + 2],
 				self.r3: batch_memory3[:, self.n_features3 + 3],
 				self.s3_: batch_memory3[:, -self.n_features3:],
 			})
@@ -372,6 +376,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		# increasing epsilon
 		self.epsilon = self.epsilon + self.epsilon_increment if self.epsilon < self.epsilon_max else self.epsilon_max
 		self.learn_step_counter += 1
+		#print(self.learn_step_counter)
 
 
 

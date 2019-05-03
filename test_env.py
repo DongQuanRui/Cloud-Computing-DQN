@@ -183,7 +183,7 @@ class Servers(object):
 
 
 
-		# update info of incoming task？？？？？？？？？？？？？？？？？？？？？？？？/
+		# update info of incoming task????????????????????????????????
 		# time_reward = s_state[action1][action2]
 		# time_reward[5] += action3#canshu!!!!!
 		# time_reward[6] += action3
@@ -281,7 +281,7 @@ class Servers(object):
 				for j in range(len(reward_state[i])):
 					if reward_state[i][j][0] == -1:
 						continue
-					else:#多算了后面的任务reward， 算到task为止
+					else:#
 						reward3 += self.price_model(reward_state[i][j][8], reward_state[i][j][6], (CPU_used / s_info[i][1]))
 						# print(reward3)
 						# print("#####")
@@ -323,7 +323,7 @@ class Servers(object):
 
 
 
-		#！！！！！！！！！！！！！！！！！！！！！！！！！！！
+		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		for i in range(len(money_state)):
 			CPU_used = 0
 			RAM_used = 0

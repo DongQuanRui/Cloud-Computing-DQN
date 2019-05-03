@@ -44,7 +44,7 @@ def run_server():
 	#global total_price
 	global s_state
 	step = 0 #keep record which step I am in
-	for episode in range(1):
+	for episode in range(100):
 		total_price = 0
 		# initialize environment
 		env = Servers()
@@ -126,7 +126,7 @@ def run_server():
 				RL.learn()
 
 			s_state = s_state_
-			print(s_state)
+			# print(s_state)
 			
 
 			# final price
@@ -146,6 +146,7 @@ if __name__ == "__main__":
 					env.n_features
 					)
 	run_server()
+	RL.plot_cost()
 	
 
 

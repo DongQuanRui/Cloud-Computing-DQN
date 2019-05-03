@@ -70,6 +70,9 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		# 	tf.summary.FileWriter("logs/", self.sess.graph)
 
 		self.sess.run(tf.global_variables_initializer())
+		self.cost_table1 = []
+		self.cost_table2 = []
+		self.cost_table3 = []
 
 	# 
 	def _build_net1(self):
@@ -283,8 +286,10 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		observation1 = np.expand_dims(observation1, axis=0)
 		if np.random.uniform() < self.epsilon:  #90% of chance to pick the existed biggest value
 			# forward feed the observation and get q value for every actions
-			actions_value = self.sess.run(self.q_eval1, feed_dict={self.s1: observation1})
-			action1 = np.argmax(self.q_eval1)
+			actions_value1 = self.sess.run(self.q_eval1, feed_dict={self.s1: observation1})
+			action1 = np.argmax(actions_value1)
+			# print(actions_value1)
+			# print(action1)
 		else:                                   #10% of chance to pick the random value
 			action1 = np.random.randint(0, self.n_actions1)
 			# print(action)
@@ -299,8 +304,8 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		# print(observation)
 		observation2 = np.expand_dims(observation2, axis=0)
 		if np.random.uniform() < self.epsilon:  #90% of chance to pick the existed biggest value
-			actions_value = self.sess.run(self.q_eval2, feed_dict={self.s2: observation2})
-			action2 = np.argmax(self.q_eval2)
+			actions_value2 = self.sess.run(self.q_eval2, feed_dict={self.s2: observation2})
+			action2 = np.argmax(actions_value2)
 			# print(action)
 		else:
 			action2 = np.random.randint(0, self.n_actions2)
@@ -314,8 +319,8 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		############################################################################################################
 		observation3 = np.expand_dims(observation3, axis=0)
 		if np.random.uniform() < self.epsilon:  #90% of chance to pick the existed biggest value
-			actions_value = self.sess.run(self.q_eval3, feed_dict={self.s3: observation3})
-			action3 = np.argmax(self.q_eval3)
+			actions_value3 = self.sess.run(self.q_eval3, feed_dict={self.s3: observation3})
+			action3 = np.argmax(actions_value3)
 			# print(action)
 		else:
 			action3 = np.random.randint(0, self.n_actions3)
@@ -341,7 +346,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 		batch_memory3 = self.memory3[sample_index, :]
 		# print(batch_memory)
 
-		self.sess.run(
+		_, cost1 = self.sess.run(
 			[self._train_op1, self.loss1],
 			feed_dict={
 				# self.s:  batch_memory[0],
@@ -354,7 +359,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 				self.s1_: batch_memory1[:, -self.n_features1:],
 			})
 
-		self.sess.run(
+		_, cost2 = self.sess.run(
 			[self._train_op2, self.loss2],
 			feed_dict={
 				self.s2: batch_memory2[:, :self.n_features2],
@@ -363,7 +368,7 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 				self.s2_: batch_memory2[:, -self.n_features2:],
 			})
 
-		self.sess.run(
+		_, cost3 = self.sess.run(
 			[self._train_op3, self.loss3],
 			feed_dict={
 				self.s3: batch_memory3[:, :self.n_features3],
@@ -372,16 +377,31 @@ class DeepQNetwork: # http://www.runoob.com/python3/python3-class.html
 				self.s3_: batch_memory3[:, -self.n_features3:],
 			})
 
+		self.cost_table1.append(cost1)
+		self.cost_table2.append(cost2)
+		self.cost_table3.append(cost3)
+
 
 		# increasing epsilon
 		self.epsilon = self.epsilon + self.epsilon_increment if self.epsilon < self.epsilon_max else self.epsilon_max
 		self.learn_step_counter += 1
 		#print(self.learn_step_counter)
 
+	def plot_cost(self):
+			import matplotlib.pyplot as plt
+			plt.figure()
+			plt.subplot(1,3,1)
+			plt.plot(np.arange(len(self.cost_table1)), self.cost_table1)
+			plt.subplot(1,3,2)
+			plt.plot(np.arange(len(self.cost_table2)), self.cost_table2)
+			plt.subplot(1,3,3)
+			plt.plot(np.arange(len(self.cost_table3)), self.cost_table3)
+			plt.ylabel('Cost')
+			plt.xlabel('training steps')
+			plt.show()
 
-
-if __name__ == '__main__':
-	DQN = DeepQNetwork(3, 4, output_graph=True)
+# if __name__ == '__main__':
+# 	DQN = DeepQNetwork(3, 4, output_graph=True)
 
 
 
